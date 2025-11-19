@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Compatibility and vendor-prefixed fallbacks for better browser support */
+html, body {
+  /* Prevent iOS/older browsers from changing text size unexpectedly */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
+  /* Ensure basic user-select prefixed support for older Safari versions */
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+/* Backdrop filter: add webkit-prefixed version for Safari */
+.backdrop-blur-md, .backdrop-blur {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* Generic mask-image prefixed support — keep default as none unless explicitly set */
+.masked, img.masked {
+  -webkit-mask-image: var(--mask-image, none);
+  mask-image: var(--mask-image, none);
+}
