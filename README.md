@@ -81,19 +81,22 @@ The system uses **JSON Web Tokens** for secure, stateless authentication.
 ---
 
 ## configure and run
-add the url and the other credentials in .env.local for frontend and .env for backend
-then run docker compose up --build (be in the root dir)
+- **add the url and the other credentials in .env.local for frontend and .env for backend
+- **then run docker compose up --build (be in the root dir)
 
+---
 
 ### **Remember Me Feature**
 Extends Refresh Token lifetime:
 
+---
 
 ```python
 if remember_me:
     refresh.set_exp(lifetime=timedelta(days=30))  # Extended session
 else:
     refresh.set_exp(lifetime=timedelta(days=1))   # Standard session
+
 
 
 
