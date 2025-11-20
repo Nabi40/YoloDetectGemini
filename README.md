@@ -1,106 +1,99 @@
 # YoloDetectGemini  
-## Facial Attendance App 🧑‍💼 Attendance System
+## Advanced Object Detection System with AI-Powered Chatbot
 
-A real-time facial attendance system built with **Vite React (Next.js)** on the frontend and **Django Rest Framework + OpenCV + YOLOv8 + FaceNet** on the backend.  
-It captures a live **RTSP webcam feed**, detects faces using **YOLO**, recognizes them via **FaceNet embeddings**, and logs attendance into the database.
-
----
-
-## 📹 Live Stream & Face Recognition
-
-- Backend fetches frames from an **RTSP IP camera**  
-- **YOLOv8** detects faces from video frames  
-- **FaceNet** verifies identities using pre-stored embeddings  
-- Attendance is recorded **only if the person hasn’t already been logged** in the last second  
+An intelligent image analysis platform combining real-time **object detection using YOLO** with conversational AI capabilities powered by **Google Gemini**.
 
 ---
 
-## 🛠 Tech Stack
+## 🌟 Features
 
-### **Frontend (Vite + React + Next.js)** 🌐  
-- Built with **Next.js** for a modern React development experience  
-- Displays live webcam feed from the backend  
-
-**Authentication Flow:**  
-- Manages user sessions using **Access Token** from backend  
-- **"Remember Me" Feature:**  
-  - Extends Refresh Token lifetime to **30 days**  
-  - Defaults to **1 day** if disabled  
-
-**Components:**
-- `dashboard.js` — Main logic for YOLO detection + Gemini Q&A  
-- `login.js`, `signup.js` — User authentication  
-- `sendotp.js`, `resetpass.js` — Password recovery flow  
+### 🔍 Object Detection
+- **YOLO11n Integration** – Real-time object detection with industry-leading accuracy  
+- **Visual Annotations** – Automatic bounding box drawing with confidence scores  
+- **Interactive Results** – Sortable detections table with detailed metrics  
+- **Batch Processing** – Efficient handling of multiple image uploads  
 
 ---
 
-### **Backend (Django + DRF)** 🐘  
-**Core Technology:**  
-- Django Rest Framework (DRF) handles API layer  
-
-**Computer Vision:**  
-- **YOLOv8** (`yolo11n.pt`) for efficient face detection  
-- **FaceNet** to generate accurate face embeddings  
-- **OpenCV** for RTSP video processing  
-
-**Security & Authentication:**  
-- **JWT** via `rest_framework_simplejwt` for stateless authentication  
-- **Password Hashing:**  
-  - Passwords securely hashed using Django's `set_password()`  
-- Provides both **access** and **refresh** tokens on login/signup  
-
-**Backend Features:**  
-- RTSP camera integration  
-- Background thread for continuous recognition  
-- REST API for user auth & attendance logs  
-- OTP-based password reset (stored in `User.temp`)  
+### 💬 AI Chatbot
+- **Gemini 2.5 Flash** – Advanced natural language understanding  
+- **Context-Aware Q&A** – Ask questions about detected objects  
+- **Multi-turn Conversations** – Maintains conversation history  
+- **Visual Intelligence** – Combines detection results with Gemini AI  
 
 ---
 
-## ✅ Features
-
-- Real-time RTSP live feed processing  
-- Non-blocking background recognition thread  
-- Skips duplicate attendance logs within **1 second**  
-- Embedded face recognition + attendance logging  
-- Webcam feed as a streaming endpoint  
-- JWT authentication for secure API access  
-- “Remember Me” token lifetime control (30 days / 1 day)  
-- Secure password hashing  
-- Email-based OTP password recovery  
+### 🔐 Authentication & Security
+- **JWT Authentication** – Secure token-based login  
+- **Password Hashing** – Using Django PBKDF2 algorithm  
+- **Remember Me Feature** – Extends session lifespan to **30 days**  
+- **Session Management** – Access + Refresh token system  
+- **OTP-Based Password Reset** – Email verification workflow  
 
 ---
 
-## ❌ Limitations
-
-- No face registration UI yet (images added manually)  
-- RTSP credentials currently hardcoded  
-- No frontend dashboard for attendance list (backend API only)  
-- OTP has no expiration timer (validated only via `User.temp`)  
-
----
-
-# 📘 Backend Implementation Details
-
-### **User & Authentication**
-
-| Feature | Backend Implementation | Details |
-|--------|------------------------|---------|
-| **User Model** | `user/models.py` (User class) | Custom model using `AbstractBaseUser` and `CustomUserManager`; handles hashing and custom fields (fullname, email). |
-| **Password Security** | `create_user`, `create_superuser` | Passwords securely hashed using `user.set_password(password)` before saving. |
-| **Login/Signup** | `user/serializers.py` (SignupSerializer, LoginSerializer) | Returns **access** and **refresh** JWT tokens on successful authentication. |
-| **Token Lifespan** | `LoginSerializer` | If `remember_me=True`, Refresh Token = **30 days**; else **1 day**. |
-| **Password Recovery** | `SendOTPView`, `VerifyOTPView`, `PasswordReplaceView` | Generates OTP (random integer), stores in `User.temp`, verifies before allowing password change. |
+### 🎨 Modern UI/UX
+- **Responsive Design** – Built with Next.js + Tailwind CSS  
+- **Live Preview** – Real-time image preview and detection visualization  
+- **Interactive Dashboard** – Sortable detection console  
+- **Drag & Drop** – Smooth file upload interface  
 
 ---
 
-# 📘 Computer Vision Components
+## 🛠️ Tech Stack
 
-| Component | Backend Implementation | Role |
-|----------|-------------------------|------|
-| **Face Detection** | `detect/utils/detect.py` | Uses **Ultralytics YOLO (yolo11n.pt)** to detect faces in frames. |
-| **Face Recognition** | Integrated logic (internal) | Matches detected faces using precomputed **FaceNet embeddings**. |
-| **AI Q&A (Gemini)** | `detect/utils/gemini.py`, `detect/views.py` | Sends image URL + question to **Gemini 2.5 Flash API** to generate contextual answers. |
+### Backend (Django REST Framework)
+- Python 3.x  
+- Django 4.x  
+- Django REST Framework  
+- `djangorestframework-simplejwt` – JWT Authentication  
+- Ultralytics YOLO – Object detection (`yolo11n.pt`)  
+- Google Generative AI – Gemini integration  
+- Pillow – Image processing and annotation  
+- SQLite / PostgreSQL database  
 
 ---
+
+### Frontend (Next.js)
+- Next.js 14 (App Router)  
+- React 18  
+- Tailwind CSS  
+- JavaScript ES6+  
+
+---
+
+## 🔒 Authentication System
+
+### **JWT Implementation**
+The system uses **JSON Web Tokens** for secure, stateless authentication.
+
+- **Access Tokens** – Short-lived (stored in `sessionStorage`)  
+- **Refresh Tokens** – Long-lived for renewing access tokens  
+- **Token Generation** – Created automatically using `RefreshToken.for_user()`  
+
+---
+
+### **Password Security**
+- Hashing Algorithm: Django **PBKDF2 + SHA256**  
+- Stored securely via `user.set_password()`  
+- Verified via `user.check_password()`  
+
+---
+
+## configure and run
+add the url and the other credentials in .env.local for frontend and .env for backend
+then run docker compose up --build (be in the root dir)
+
+
+### **Remember Me Feature**
+Extends Refresh Token lifetime:
+
+
+```python
+if remember_me:
+    refresh.set_exp(lifetime=timedelta(days=30))  # Extended session
+else:
+    refresh.set_exp(lifetime=timedelta(days=1))   # Standard session
+
+
 
