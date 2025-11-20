@@ -1,103 +1,106 @@
-﻿# YoloDetectGemini
-Facial Attendance App 🧑‍ attendance
-A real-time facial attendance system built with Vite React (Next.js) on the frontend and Django Rest Framework + OpenCV + YOLOv8 + FaceNet on the backend. It captures a live RTSP webcam feed, detects faces using YOLO, recognizes them via FaceNet embeddings, and logs attendance to the database.
+# YoloDetectGemini  
+## Facial Attendance App 🧑‍💼 Attendance System
 
-📹 Live Stream & Face Recognition
-Backend fetches frames from an RTSP IP camera.
+A real-time facial attendance system built with **Vite React (Next.js)** on the frontend and **Django Rest Framework + OpenCV + YOLOv8 + FaceNet** on the backend.  
+It captures a live **RTSP webcam feed**, detects faces using **YOLO**, recognizes them via **FaceNet embeddings**, and logs attendance into the database.
 
-YOLOv8 detects faces from video frames.
+---
 
-FaceNet verifies identities using pre-stored face embeddings.
+## 📹 Live Stream & Face Recognition
 
-Attendance is recorded only if a person has not already been logged in the last second.
+- Backend fetches frames from an **RTSP IP camera**  
+- **YOLOv8** detects faces from video frames  
+- **FaceNet** verifies identities using pre-stored embeddings  
+- Attendance is recorded **only if the person hasn’t already been logged** in the last second  
 
-🛠 Tech Stack
-Frontend (Vite + React + Next.js) 🌐
-Built with Next.js for a modern React development experience.
+---
 
-Displays live webcam feed from backend.
+## 🛠 Tech Stack
 
-Authentication Flow: Manages user sessions using the Access Token obtained from the backend.
+### **Frontend (Vite + React + Next.js)** 🌐  
+- Built with **Next.js** for a modern React development experience  
+- Displays live webcam feed from the backend  
 
-"Remember Me" Feature: Extends the expiration time of the Refresh Token (and subsequently the Access Token) to 30 days for persistent login, otherwise defaults to 1 day.
+**Authentication Flow:**  
+- Manages user sessions using **Access Token** from backend  
+- **"Remember Me" Feature:**  
+  - Extends Refresh Token lifetime to **30 days**  
+  - Defaults to **1 day** if disabled  
 
-Components:
+**Components:**
+- `dashboard.js` — Main logic for YOLO detection + Gemini Q&A  
+- `login.js`, `signup.js` — User authentication  
+- `sendotp.js`, `resetpass.js` — Password recovery flow  
 
-dashboard.js: Main application logic for object detection and Gemini Q&A interaction.
+---
 
-login.js, signup.js: Authentication forms.
+### **Backend (Django + DRF)** 🐘  
+**Core Technology:**  
+- Django Rest Framework (DRF) handles API layer  
 
-sendotp.js, resetpass.js: Password recovery flow.
+**Computer Vision:**  
+- **YOLOv8** (`yolo11n.pt`) for efficient face detection  
+- **FaceNet** to generate accurate face embeddings  
+- **OpenCV** for RTSP video processing  
 
-Backend (Django + DRF) 🐘
-Core Technology: Django Rest Framework (DRF) handles the API layer.
+**Security & Authentication:**  
+- **JWT** via `rest_framework_simplejwt` for stateless authentication  
+- **Password Hashing:**  
+  - Passwords securely hashed using Django's `set_password()`  
+- Provides both **access** and **refresh** tokens on login/signup  
 
-Computer Vision:
+**Backend Features:**  
+- RTSP camera integration  
+- Background thread for continuous recognition  
+- REST API for user auth & attendance logs  
+- OTP-based password reset (stored in `User.temp`)  
 
-YOLOv8 model (yolo11n.pt) for efficient face detection.
+---
 
-FaceNet for generating highly accurate face embeddings for recognition.
+## ✅ Features
 
-OpenCV for video stream processing and integration with the RTSP camera.
+- Real-time RTSP live feed processing  
+- Non-blocking background recognition thread  
+- Skips duplicate attendance logs within **1 second**  
+- Embedded face recognition + attendance logging  
+- Webcam feed as a streaming endpoint  
+- JWT authentication for secure API access  
+- “Remember Me” token lifetime control (30 days / 1 day)  
+- Secure password hashing  
+- Email-based OTP password recovery  
 
-Security & Authentication:
+---
 
-JWT (JSON Web Tokens): Used for stateless authentication via rest_framework_simplejwt. Tokens (access and refresh) are issued upon login/signup.
+## ❌ Limitations
 
-Password Hashing: Passwords are securely hashed by Django using the built-in user manager (set_password in User model) before saving to the database.
+- No face registration UI yet (images added manually)  
+- RTSP credentials currently hardcoded  
+- No frontend dashboard for attendance list (backend API only)  
+- OTP has no expiration timer (validated only via `User.temp`)  
 
-Features:
+---
 
-RTSP camera integration.
+# 📘 Backend Implementation Details
 
-Background thread for continuous recognition.
+### **User & Authentication**
 
-REST API for user authentication and attendance records.
+| Feature | Backend Implementation | Details |
+|--------|------------------------|---------|
+| **User Model** | `user/models.py` (User class) | Custom model using `AbstractBaseUser` and `CustomUserManager`; handles hashing and custom fields (fullname, email). |
+| **Password Security** | `create_user`, `create_superuser` | Passwords securely hashed using `user.set_password(password)` before saving. |
+| **Login/Signup** | `user/serializers.py` (SignupSerializer, LoginSerializer) | Returns **access** and **refresh** JWT tokens on successful authentication. |
+| **Token Lifespan** | `LoginSerializer` | If `remember_me=True`, Refresh Token = **30 days**; else **1 day**. |
+| **Password Recovery** | `SendOTPView`, `VerifyOTPView`, `PasswordReplaceView` | Generates OTP (random integer), stores in `User.temp`, verifies before allowing password change. |
 
-OTP-based Password Reset flow (Sends code via email and stores temporarily in the User.temp field).
+---
 
-✅ Features
-Real-time RTSP camera feed processing.
+# 📘 Computer Vision Components
 
-Background threading for continuous recognition without blocking the main thread.
+| Component | Backend Implementation | Role |
+|----------|-------------------------|------|
+| **Face Detection** | `detect/utils/detect.py` | Uses **Ultralytics YOLO (yolo11n.pt)** to detect faces in frames. |
+| **Face Recognition** | Integrated logic (internal) | Matches detected faces using precomputed **FaceNet embeddings**. |
+| **AI Q&A (Gemini)** | `detect/utils/gemini.py`, `detect/views.py` | Sends image URL + question to **Gemini 2.5 Flash API** to generate contextual answers. |
 
-Skip duplicate logs within a 1-second window for attendance accuracy.
-
-Embedded face recognition and attendance logging.
-
-Streaming response for webcam feed.
-
-JWT Authentication for secure access control.
-
-Remember Me functionality to control JWT lifespan (30 days vs 1 day).
-
-Secure Password Storage using Django's built-in hashing mechanism.
-
-OTP Password Recovery via email.
-
-❌ Limitations
-No face registration interface yet (reference images must be added manually).
-
-RTSP credentials are hardcoded (for demo purposes).
-
-No frontend dashboard for attendance list (API only).
-
-OTP validity is currently not time-limited on the backend (only validated against User.temp field).
-
-
-
-
-
-Feature,Backend Implementation,Details
-User Model,user/models.py (User class),"Uses AbstractBaseUser with CustomUserManager for custom user fields (fullname, email) and managing password hashing."
-Password Security,"user/models.py (create_user, create_superuser)",Passwords are not stored in plaintext; they are securely hashed using the built-in user.set_password(password) method.
-Login/Signup,"user/serializers.py (SignupSerializer, LoginSerializer)",Returns JWTs (access and refresh tokens) upon successful login or registration.
-Token Lifespan,user/serializers.py (LoginSerializer),"Checks the remember_me boolean: sets Refresh Token lifetime to 30 days if true, or 1 day if false (timedelta(days=30) or timedelta(days=1))."
-Password Recovery,"user/views.py (SendOTPView, VerifyOTPView, PasswordReplaceView)","A simple one-time password (OTP) is generated (random.randint), stored in the User.temp field, and used to authorize a password replacement."
-
-Component,Backend Implementation,Role
-Face Detection,detect/utils/detect.py,Uses Ultralytics YOLO (yolo11n.pt) to locate faces within video frames.
-Face Recognition,Integrated logic (not explicitly shown),Uses pre-computed FaceNet embeddings to compare detected faces against registered identities.
-AI Q&A,"detect/utils/gemini.py, detect/views.py","Takes an image URL and a question, then uses the Gemini 2.5 Flash API to generate a contextual answer."
-
+---
 
