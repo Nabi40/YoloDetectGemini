@@ -5,7 +5,34 @@ import { useRouter } from 'next/navigation';
 import { getSession, clearSession } from '../lib/session';
 import { parseResponse } from '../lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_DETECT_API?.trim()
+const API_BASE = (process.env.NEXT_PUBLIC_DETECT_API ?? '').trim().replace(/\/$/, '');
+const DETECT_ENDPOINT = '/api/detect/';
+const ASK_GEMINI_ENDPOINT = '/api/ask-gemini/';
+
+const buildApiUrl = (path) => {
+  if (!API_BASE) return path;
+  if (path.startsWith('http')) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE}${normalizedPath}`;
+};
+
+const looksLikeBase64 = (value = '') => {
+  const sanitized = value.trim();
+  if (sanitized.length < 48) return false;
+  return /^[A-Za-z0-9+/=\s]+$/.test(sanitized);
+};
+
+const normalizeMediaUrl = (value) => {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:')) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return API_BASE ? `${API_BASE}${trimmed}` : trimmed;
+  if (looksLikeBase64(trimmed)) return `data:image/png;base64,${trimmed}`;
+  if (API_BASE) return `${API_BASE}/${trimmed.replace(/^\/+/, '')}`;
+  return trimmed;
+};
 
 
 const annotatedPlaceholder =
@@ -49,9 +76,9 @@ function Header() {
   const [user] = useState(() => {
     try {
       const s = typeof window !== 'undefined' ? getSession() : null;
-      return s?.user ?? { fullname: 'John Doe', email: 'john.doe@example.com' };
+      return s?.user ?? { fullname: '', email: '' };
     } catch (e) {
-      return { fullname: 'John Doe', email: 'john.doe@example.com' };
+      return { fullname: '', email: '' };
     }
   });
 
@@ -101,12 +128,12 @@ function Header() {
             Logout
           </button>
           <div className="flex items-center gap-3 rounded-full border border-slate-100 bg-slate-50/80 px-3 py-2 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-pink-500 to-rose-600 text-sm font-semibold text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-pink-500 to-rose-600 text-sm font-semibold text-white">
               {initials}
             </div>
             <div className="hidden text-sm sm:block">
-              <p className="font-semibold text-slate-900">{user.fullname || 'John Doe'}</p>
-              <p className="text-slate-500">{user.email || 'john.doe@example.com'}</p>
+              <p className="font-semibold text-slate-900">{user.fullname || user.email || 'User'}</p>
+              <p className="text-slate-500">{user.email || 'user@example.com'}</p>
             </div>
           </div>
         </div>
@@ -232,7 +259,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append('image', selectedFile);
 
-      const response = await fetch(`${API_BASE}/api/detect/`, {
+      const response = await fetch(buildApiUrl(DETECT_ENDPOINT), {
         method: 'POST',
         body: formData,
       });
@@ -249,23 +276,21 @@ export default function Dashboard() {
       }
 
       if (typeof data?.annotated_image === 'string') {
-        const annotated =
-          data.annotated_image.startsWith('data:') || data.annotated_image.startsWith('http')
-            ? data.annotated_image
-            : `data:image/png;base64,${data.annotated_image}`;
+        const annotated = normalizeMediaUrl(data.annotated_image);
         setAnnotatedImage(annotated);
         setAnnotatedImageError('');
       }
       if (typeof data?.output_image === 'string') {
-        setOutputImage(data.output_image);
+        setOutputImage(normalizeMediaUrl(data.output_image));
       } else {
         setOutputImage('');
       }
 
       if (typeof data?.image_url === 'string') {
-        setDetectionImageUrl(data.image_url);
-      } else if (typeof data?.annotated_image === 'string' && data.annotated_image.startsWith('http')) {
-        setDetectionImageUrl(data.annotated_image);
+        setDetectionImageUrl(normalizeMediaUrl(data.image_url));
+      } else if (typeof data?.annotated_image === 'string') {
+        const annotatedUrl = normalizeMediaUrl(data.annotated_image);
+        setDetectionImageUrl(annotatedUrl.startsWith('http') ? annotatedUrl : '');
       } else {
         setDetectionImageUrl('');
       }
@@ -277,10 +302,8 @@ export default function Dashboard() {
   }, [normalizeDetections, selectedFile]);
 
   const imageUrlForQuestion = useMemo(() => {
-    if (detectionImageUrl) return detectionImageUrl;
-    if (outputImage) return outputImage;
-    if (annotatedImage && !annotatedImage.startsWith('data:')) return annotatedImage;
-    return '';
+    const candidates = [detectionImageUrl, outputImage, annotatedImage];
+    return candidates.find((url) => typeof url === 'string' && /^https?:\/\//i.test(url)) ?? '';
   }, [annotatedImage, detectionImageUrl, outputImage]);
 
   const handleQuestionSubmit = async (event) => {
@@ -297,7 +320,7 @@ export default function Dashboard() {
 
     try {
       setQuestionLoading(true);
-      const resp = await fetch(`${API_BASE}/api/ask-gemini/`, {
+      const resp = await fetch(buildApiUrl(ASK_GEMINI_ENDPOINT), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
