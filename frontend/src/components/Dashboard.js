@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSession, clearSession } from '../lib/session';
+import { parseResponse } from '../lib/api';
 
-const DETECT_ENDPOINT = process.env.NEXT_PUBLIC_DETECT_API || 'http://127.0.0.1:8000/api/detect/';
+const API_BASE = process.env.NEXT_PUBLIC_DETECT_API?.trim()
+
 
 const annotatedPlaceholder =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect fill='%23f1f5f9' width='600' height='400'/%3E%3Crect x='80' y='120' width='180' height='160' fill='none' stroke='%2310b981' stroke-width='3' stroke-dasharray='8 4'/%3E%3Ctext x='90' y='145' font-family='Arial' font-size='14' font-weight='bold' fill='%2310b981'%3ECar (0.94)%3C/text%3E%3Crect x='340' y='80' width='140' height='180' fill='none' stroke='%232563eb' stroke-width='3' stroke-dasharray='8 4'/%3E%3Ctext x='350' y='105' font-family='Arial' font-size='14' font-weight='bold' fill='%232563eb'%3EPerson (0.89)%3C/text%3E%3Crect x='150' y='260' width='100' height='80' fill='none' stroke='%23f59e0b' stroke-width='3' stroke-dasharray='8 4'/%3E%3Ctext x='160' y='285' font-family='Arial' font-size='14' font-weight='bold' fill='%23f59e0b'%3EBike (0.87)%3C/text%3E%3Crect x='380' y='280' width='120' height='90' fill='none' stroke='%23ec4899' stroke-width='3' stroke-dasharray='8 4'/%3E%3Ctext x='390' y='305' font-family='Arial' font-size='14' font-weight='bold' fill='%23ec4899'%3ESign (0.76)%3C/text%3E%3Crect x='20' y='30' width='80' height='60' fill='none' stroke='%238b5cf6' stroke-width='3' stroke-dasharray='8 4'/%3E%3Ctext x='30' y='55' font-family='Arial' font-size='14' font-weight='bold' fill='%238b5cf6'%3ETree (0.82)%3C/text%3E%3C/svg%3E";
@@ -15,28 +19,7 @@ const defaultDetections = [
   { id: 'sign', label: 'Sign', confidence: 76, bbox: '(380, 280, 500, 370)', color: 'pink' },
 ];
 
-const initialChat = [
-  {
-    id: 1,
-    author: 'user',
-    text: 'What is the confidence score of the largest object?',
-  },
-  {
-    id: 2,
-    author: 'ai',
-    text: 'Based on the detection results, the largest object is the Car with a bounding box of (80, 120, 260, 280), which has a confidence score of 94%.',
-  },
-  {
-    id: 3,
-    author: 'user',
-    text: 'How many objects were detected with confidence above 85%?',
-  },
-  {
-    id: 4,
-    author: 'ai',
-    text: 'There are 3 objects detected with confidence above 85%: Car (94%), Person (89%), and Bike (87%).',
-  },
-];
+const initialChat = [];
 
 const gradientMap = {
   emerald: 'from-emerald-400 to-emerald-500',
@@ -63,6 +46,25 @@ const tableHeaders = [
 ];
 
 function Header() {
+  const [user] = useState(() => {
+    try {
+      const s = typeof window !== 'undefined' ? getSession() : null;
+      return s?.user ?? { fullname: 'John Doe', email: 'john.doe@example.com' };
+    } catch (e) {
+      return { fullname: 'John Doe', email: 'john.doe@example.com' };
+    }
+  });
+
+  const initials = (user.fullname || user.email || 'JD')
+    .split(' ')
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const router = useRouter();
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -81,16 +83,30 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50">
+          <button
+            onClick={() => {
+              try {
+                clearSession();
+              } catch (e) {
+                // ignore
+              }
+              try {
+                router.push('/');
+              } catch (e) {
+                window.location.href = '/';
+              }
+            }}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+          >
             Logout
           </button>
           <div className="flex items-center gap-3 rounded-full border border-slate-100 bg-slate-50/80 px-3 py-2 shadow-sm">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-pink-500 to-rose-600 text-sm font-semibold text-white">
-              JD
+              {initials}
             </div>
             <div className="hidden text-sm sm:block">
-              <p className="font-semibold text-slate-900">John Doe</p>
-              <p className="text-slate-500">john.doe@example.com</p>
+              <p className="font-semibold text-slate-900">{user.fullname || 'John Doe'}</p>
+              <p className="text-slate-500">{user.email || 'john.doe@example.com'}</p>
             </div>
           </div>
         </div>
@@ -105,6 +121,7 @@ export default function Dashboard() {
   const [annotatedImage, setAnnotatedImage] = useState(annotatedPlaceholder);
   const [annotatedImageError, setAnnotatedImageError] = useState('');
   const [outputImage, setOutputImage] = useState('');
+  const [detectionImageUrl, setDetectionImageUrl] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'confidence', direction: 'desc' });
   const [messages, setMessages] = useState(initialChat);
@@ -112,11 +129,13 @@ export default function Dashboard() {
   const [customDetections, setCustomDetections] = useState(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionError, setDetectionError] = useState('');
+  const [questionLoading, setQuestionLoading] = useState(false);
+  const [questionError, setQuestionError] = useState('');
   const fileInputRef = useRef(null);
   const chatEndRef = useRef(null);
 
   // Keep the detection results blank until the backend returns detections
-  const detectionDataset = customDetections ?? [];
+  const detectionDataset = useMemo(() => customDetections ?? [], [customDetections]);
 
   const sortedResults = useMemo(() => {
     const data = [...detectionDataset];
@@ -151,6 +170,8 @@ export default function Dashboard() {
     setDetectionError('');
     setCustomDetections(null);
     setAnnotatedImage(annotatedPlaceholder);
+    setOutputImage('');
+    setDetectionImageUrl('');
   }, []);
 
   const handleDrop = useCallback(
@@ -211,7 +232,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append('image', selectedFile);
 
-      const response = await fetch(DETECT_ENDPOINT, {
+      const response = await fetch(`${API_BASE}/api/detect/`, {
         method: 'POST',
         body: formData,
       });
@@ -221,7 +242,7 @@ export default function Dashboard() {
         throw new Error(errorBody || 'Failed to run detection. Please try again.');
       }
 
-      const data = await response.json();
+  const data = await parseResponse(response);
 
       if (Array.isArray(data?.detections)) {
         setCustomDetections(normalizeDetections(data.detections));
@@ -237,6 +258,16 @@ export default function Dashboard() {
       }
       if (typeof data?.output_image === 'string') {
         setOutputImage(data.output_image);
+      } else {
+        setOutputImage('');
+      }
+
+      if (typeof data?.image_url === 'string') {
+        setDetectionImageUrl(data.image_url);
+      } else if (typeof data?.annotated_image === 'string' && data.annotated_image.startsWith('http')) {
+        setDetectionImageUrl(data.annotated_image);
+      } else {
+        setDetectionImageUrl('');
       }
     } catch (error) {
       setDetectionError(error instanceof Error ? error.message : 'Unexpected error while contacting the API.');
@@ -245,20 +276,51 @@ export default function Dashboard() {
     }
   }, [normalizeDetections, selectedFile]);
 
-  const handleQuestionSubmit = (event) => {
+  const imageUrlForQuestion = useMemo(() => {
+    if (detectionImageUrl) return detectionImageUrl;
+    if (outputImage) return outputImage;
+    if (annotatedImage && !annotatedImage.startsWith('data:')) return annotatedImage;
+    return '';
+  }, [annotatedImage, detectionImageUrl, outputImage]);
+
+  const handleQuestionSubmit = async (event) => {
     event.preventDefault();
     if (!question.trim()) return;
     const trimmed = question.trim();
-    const nextId = messages.length + 1;
-    const topDetection = sortedResults[0];
-    const aiReply = `The highest confidence object is ${topDetection.label} at ${topDetection.confidence}%. I can help you analyze coordinates ${topDetection.bbox}.`;
-
-    setMessages((prev) => [
-      ...prev,
-      { id: nextId, author: 'user', text: trimmed },
-      { id: nextId + 1, author: 'ai', text: aiReply },
-    ]);
+    const userMessage = { id: Date.now(), author: 'user', text: trimmed };
+    setMessages((prev) => [...prev, userMessage]);
     setQuestion('');
+    setQuestionError('');
+
+    const payload = { question: trimmed };
+    if (imageUrlForQuestion) payload.image_url = imageUrlForQuestion;
+
+    try {
+      setQuestionLoading(true);
+      const resp = await fetch(`${API_BASE}/api/ask-gemini/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await parseResponse(resp);
+
+      if (resp.ok && data?.answer) {
+        const aiMessage = {
+          id: Date.now() + 1,
+          author: 'ai',
+          text: data.answer,
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        const msg = data?.detail || data?.message || 'Failed to get answer from Gemini.';
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+    } catch (err) {
+      setQuestionError(err instanceof Error ? err.message : 'Unable to contact Gemini endpoint.');
+    } finally {
+      setQuestionLoading(false);
+    }
   };
 
   return (
@@ -358,6 +420,8 @@ export default function Dashboard() {
                       setCustomDetections(null);
                       setAnnotatedImage(annotatedPlaceholder);
                       setDetectionError('');
+                      setOutputImage('');
+                      setDetectionImageUrl('');
                       if (fileInputRef.current) {
                         fileInputRef.current.value = '';
                       }
@@ -550,11 +614,17 @@ export default function Dashboard() {
                 title="Ask a question about the detected objects"
                 className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-700 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-violet-500/10"
               />
+              {questionError && (
+                <p className="text-sm font-semibold text-rose-600" aria-live="assertive">
+                  {questionError}
+                </p>
+              )}
               <button
                 type="submit"
+                disabled={questionLoading}
                 className="w-full rounded-2xl bg-linear-to-r from-violet-500 to-violet-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:-translate-y-0.5"
               >
-                Send
+                {questionLoading ? 'Sending…' : 'Send'}
               </button>
             </form>
         </div>

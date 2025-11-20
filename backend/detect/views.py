@@ -7,6 +7,7 @@ from rest_framework import status
 
 from .serializers import DetectionSerializer
 from .utils.detect import detect_objects
+from .utils.gemini import ask_gemini
 
 
 class DetectView(APIView):
@@ -47,3 +48,17 @@ class DetectView(APIView):
             return Response(response_data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class GeminiAskView(APIView):
+    def post(self, request):
+        question = request.data.get("question")
+        image_url = request.data.get("image_url")
+
+        result = ask_gemini(question, image_url)
+
+        if not result["success"]:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_200_OK)
