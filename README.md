@@ -8,27 +8,56 @@ An intelligent image analysis platform combining real-time **object detection us
 ## 🌟 Features
 
 ### 🔍 Object Detection
-- **YOLO11n Integration** – Real-time object detection with industry-leading accuracy  
+- **YOLO11n Integration** – Object detection from Image
 - **Visual Annotations** – Automatic bounding box drawing with confidence scores  
-- **Interactive Results** – Sortable detections table with detailed metrics  
-- **Batch Processing** – Efficient handling of multiple image uploads  
+- **Interactive Results** – Sortable detections table with detailed metrics   
 
 ---
 
+
+## 🛠️ Tech Stack
+
+### Backend (Django REST Framework)
+- Python 3.10  
+- Django 5.1.6
+- Django REST Framework  
+- `djangorestframework-simplejwt` – JWT Authentication  
+- Ultralytics YOLO – Object detection (`yolo11n.pt`)  
+- Google Generative AI – Gemini integration  
+- Pillow – Image processing and annotation  
+- PostgreSQL database  
+
+
+---
+
+
 ### 💬 AI Chatbot
-- **Gemini 2.5 Flash** – Advanced natural language understanding  
-- **Context-Aware Q&A** – Ask questions about detected objects  
-- **Multi-turn Conversations** – Maintains conversation history  
-- **Visual Intelligence** – Combines detection results with Gemini AI  
+- **Gemini 2.5 Flash** – Q&A Based on annotated image  
 
 ---
 
 ### 🔐 Authentication & Security
 - **JWT Authentication** – Secure token-based login  
-- **Password Hashing** – Using Django PBKDF2 algorithm  
-- **Remember Me Feature** – Extends session lifespan to **30 days**  
-- **Session Management** – Access + Refresh token system  
-- **OTP-Based Password Reset** – Email verification workflow  
+- **Password Hashing** – Using Django PBKDF2 algorithm
+- - Hashing Algorithm: Django **PBKDF2 + SHA256**  
+- Stored securely via `user.set_password()`  
+- Verified via `user.check_password()`
+- 
+- **Remember Me Feature** – Extends session lifespan to **30 days**
+
+```python
+if remember_me:
+    refresh.set_exp(lifetime=timedelta(days=30))  # Extended session
+else:
+    refresh.set_exp(lifetime=timedelta(days=1))   # Standard session
+```
+
+- **Session Management** – Access + Refresh token system
+- **Access Tokens** – Short-lived (stored in `sessionStorage`)  
+- **Refresh Tokens** – Long-lived for renewing access tokens  
+- **Token Generation** – Created automatically using `RefreshToken.for_user()`
+- 
+- **OTP-Based Password Reset** – Email verification workflow (tasted on mailtrap) 
 
 ---
 
@@ -38,21 +67,9 @@ An intelligent image analysis platform combining real-time **object detection us
 - **Interactive Dashboard** – Sortable detection console  
 - **Drag & Drop** – Smooth file upload interface  
 
----
-
-## 🛠️ Tech Stack
-
-### Backend (Django REST Framework)
-- Python 3.x  
-- Django 4.x  
-- Django REST Framework  
-- `djangorestframework-simplejwt` – JWT Authentication  
-- Ultralytics YOLO – Object detection (`yolo11n.pt`)  
-- Google Generative AI – Gemini integration  
-- Pillow – Image processing and annotation  
-- SQLite / PostgreSQL database  
 
 ---
+
 
 ### Frontend (Next.js)
 - Next.js 14 (App Router)  
@@ -60,42 +77,17 @@ An intelligent image analysis platform combining real-time **object detection us
 - Tailwind CSS  
 - JavaScript ES6+  
 
----
-
-## 🔒 Authentication System
-
-### **JWT Implementation**
-The system uses **JSON Web Tokens** for secure, stateless authentication.
-
-- **Access Tokens** – Short-lived (stored in `sessionStorage`)  
-- **Refresh Tokens** – Long-lived for renewing access tokens  
-- **Token Generation** – Created automatically using `RefreshToken.for_user()`  
 
 ---
 
-### **Password Security**
-- Hashing Algorithm: Django **PBKDF2 + SHA256**  
-- Stored securely via `user.set_password()`  
-- Verified via `user.check_password()`  
-
----
 
 ## configure and run
-- **add the url and the other credentials in .env.local for frontend and .env for backend
-- **then run docker compose up --build (be in the root dir)
+- **Git Clone** - clone the project and stay in root dir 
+- **configure .env and .env.local** - add credentials for frontend and backend
+- **wait-fot-it.sh** - wait-fot-it.sh is only for windows not for linux
+- **docker compose** me in the root dir and run ``` docker compose up --build ```
 
----
 
-### **Remember Me Feature**
-Extends Refresh Token lifetime:
-
----
-
-```python
-if remember_me:
-    refresh.set_exp(lifetime=timedelta(days=30))  # Extended session
-else:
-    refresh.set_exp(lifetime=timedelta(days=1))   # Standard session
 
 
 
