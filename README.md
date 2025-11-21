@@ -39,10 +39,15 @@ An intelligent image analysis platform combining real-time **object detection us
 ### 🔐 Authentication & Security
 - **JWT Authentication** – Secure token-based login  
 - **Password Hashing** – Using Django PBKDF2 algorithm
-- - Hashing Algorithm: Django **PBKDF2 + SHA256**  
+- Hashing Algorithm: Django **PBKDF2 + SHA256**  
 - Stored securely via `user.set_password()`  
 - Verified via `user.check_password()`
-- 
+
+- **Session Management** – Access + Refresh token system
+- **Token Generation** – Created automatically using `RefreshToken.for_user()`
+- **Access Tokens** – Short-lived (stored in `sessionStorage`)  
+- **Refresh Tokens** – Long-lived for renewing access tokens
+
 - **Remember Me Feature** – Extends session lifespan to **30 days**
 
 ```python
@@ -51,12 +56,7 @@ if remember_me:
 else:
     refresh.set_exp(lifetime=timedelta(days=1))   # Standard session
 ```
-
-- **Session Management** – Access + Refresh token system
-- **Access Tokens** – Short-lived (stored in `sessionStorage`)  
-- **Refresh Tokens** – Long-lived for renewing access tokens  
-- **Token Generation** – Created automatically using `RefreshToken.for_user()`
-- 
+  
 - **OTP-Based Password Reset** – Email verification workflow (tasted on mailtrap) 
 
 ---
@@ -86,6 +86,7 @@ else:
 - **configure .env and .env.local** - add credentials for frontend and backend
 - **wait-fot-it.sh** - wait-fot-it.sh is only for windows not for linux
 - **docker compose** me in the root dir and run ``` docker compose up --build ```
+
 
 
 
