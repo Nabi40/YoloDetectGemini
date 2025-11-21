@@ -84,8 +84,12 @@ else:
 ## configure and run
 - **Git Clone** - clone the project and stay in root dir 
 - **configure .env and .env.local** - add credentials for frontend and backend
-- **wait-fot-it.sh** - wait-fot-it.sh is only for windows not for linux
-- **docker compose** me in the root dir and run ``` docker compose up --build ```
+- **wait-fot-it.sh** - it is only for windows not for linux
+- **docker compose** me in the root dir and run
+```Docker
+   docker compose up --build
+```
+
 
 
 
