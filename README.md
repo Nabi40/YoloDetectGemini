@@ -85,10 +85,16 @@ else:
 - **Git Clone** - clone the project and stay in root dir 
 - **configure .env and .env.local** - add credentials for frontend and backend
 - **wait-fot-it.sh** - it is only for windows not for linux
+- **run if find env: ‘bash\r’: No such file or directory while docker compose up** -
+  ```
+  dos2unix backend/wait-for-it.sh
+
+
 - **docker compose** me in the root dir and run
 ```Docker
    docker compose up --build
 ```
+
 
 
 
